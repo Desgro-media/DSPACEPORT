@@ -1,34 +1,136 @@
+/* ============================================================
+   Mobile / small-screen overrides.
+   Everything below is gated behind max-width media queries, so
+   nothing here ever touches the desktop (>860px) presentation —
+   it only tightens scale, spacing and card density on phones.
+   ============================================================ */
+
 @media (max-width: 860px) {
   .nav__links { display: none; }
   .nav__toggle { display: flex; }
   .nav__right .btn-outline-dark { display: none; }
 
+  /* Tighter global rhythm: every .section (all 5 pages) and the
+     gutter shrink together from one place. */
+  :root {
+    --section-pad: clamp(48px, 13vw, 80px);
+    --gutter: clamp(20px, 6vw, 28px);
+  }
+
+  .section--tight { padding-block: clamp(36px, 10vw, 56px); }
+  .section-head { margin-bottom: clamp(28px, 8vw, 44px); gap: 16px; }
+
+  /* ---- Type scale: the huge display sizes get a real phone ceiling ---- */
+  .h-huge { font-size: clamp(2.6rem, 15vw, 4.4rem); line-height: 0.94; }
+  .h-display { font-size: clamp(2.3rem, 11vw, 3.8rem); }
+  .h-xl { font-size: clamp(1.9rem, 8vw, 2.8rem); }
+  .ghost-num { font-size: clamp(3rem, 20vw, 5.6rem); }
+  .quote-mark { font-size: clamp(2.4rem, 14vw, 3.6rem); }
+
+  /* ---- Hero ---- */
+  .hero { padding-top: 100px; }
   .hero__bottom {
     flex-direction: column;
     align-items: flex-start;
-    gap: 24px;
+    gap: 18px;
+    margin-top: clamp(16px, 5vw, 32px);
+    padding-top: clamp(12px, 4vw, 22px);
   }
-
   .hero__bottom .gap-lg {
-    gap: 28px;
+    gap: 22px;
     flex-wrap: wrap;
-    row-gap: 18px;
+    row-gap: 14px;
   }
 
+  /* ---- Page hero ---- */
+  .page-hero { padding-top: 104px; min-height: 40vh; }
+  .page-hero__content { padding-bottom: 40px; }
+  .page-hero__num { top: 92px; font-size: 4rem; }
+
+  /* ---- Property / featured cards ---- */
+  .p-grid { gap: 26px 18px; }
+  .p-card__body { padding-top: 14px; }
+  .p-card__specs { margin-top: 10px; padding-top: 10px; gap: 10px; }
+  .p-card__tag { top: 12px; left: 12px; padding: 5px 11px; }
+  .p-card__price { left: 12px; bottom: 12px; }
+  .p-card__price .amount { font-size: 1.2rem; }
+
+  /* ---- Service pillars ---- */
+  .pillar { min-height: 320px; }
+  .pillar__body { padding: 24px; }
+  .pillar__desc { max-width: none; }
+  .pillar__ghost { font-size: 3rem; top: 6px; right: 14px; }
+  .pillars--stagger .pillar:nth-child(2),
+  .pillars--stagger .pillar:nth-child(3) { margin-top: 0; }
+
+  /* ---- Values ---- */
+  .values-grid { gap: 18px; }
+  .value-card__body { padding: 18px 18px 22px; }
+  .value-card__num { font-size: 2.8rem; }
+
+  /* ---- Team: compact 2-up instead of one full-width card per row ---- */
+  .team-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px 14px;
+  }
+  .team-card__media { aspect-ratio: 1 / 1.05; margin-bottom: 10px; }
+  .team-card .h-sm { font-size: 0.95rem; }
+  .team-card__role { font-size: 0.7rem; }
+  .team-grid .team-card:nth-child(2n) { margin-top: 0; }
+
+  /* ---- Stats: 2x2 instead of a long single-column stack ---- */
+  .grid-4 { grid-template-columns: repeat(2, 1fr); gap: 28px 18px; }
+
+  /* ---- Timeline ---- */
+  .timeline__row { padding: 24px 0; gap: 8px; }
+  .timeline__year { font-size: clamp(2rem, 10vw, 2.6rem); }
+
+  /* ---- Locations split ---- */
+  .loc-panel { min-height: 360px; padding: 26px; }
+  .loc-panel__stats { gap: 24px; margin-top: 20px; padding-top: 18px; }
+
+  /* ---- Testimonials ---- */
+  .testi-wrap { gap: 14px; }
+
+  /* ---- Related properties ---- */
+  .related-scroll { gap: 20px; }
+
+  /* ---- Property detail: gallery, specs, agent card ---- */
+  .breadcrumb-section { padding: 104px 0 24px; }
+  .pd-hero-section { margin-bottom: 36px; }
+  .pd-hero-head { gap: 16px; margin-bottom: 20px; }
+  .spec-cell { padding: 18px 16px; }
+  .spec-cell__value { font-size: 1.15rem; }
+  .pd-overview-grid { gap: 24px; margin-bottom: 40px; }
+  .pd-specs { margin-bottom: 44px; }
+  .pd-main-grid { gap: 36px; }
+  .agent-card { padding: 22px; }
+  .gallery { gap: 10px; }
+
+  /* ---- Office / contact cards ---- */
+  .office-card { padding: 24px; }
+  .contact-info__row { padding: 18px 0; gap: 14px; }
+  .contact-wrap__ghost { top: 0.02em; }
+
+  /* ---- Footer ---- */
+  .footer__top { gap: 32px; padding-bottom: 48px; }
   .footer__bottom {
     flex-direction: column;
     gap: 16px;
     text-align: center;
   }
 
-  .page-hero { padding-top: 120px; min-height: 50vh; }
-
+  /* ---- Filter bar ---- */
   .filter-bar {
     position: static;
     flex-direction: column;
     align-items: flex-start;
+    gap: 14px;
+    padding: 20px 0;
+    margin-bottom: 36px;
   }
 
+  /* ---- WhatsApp float ---- */
   .wa-float {
     width: 50px;
     height: 50px;
@@ -40,7 +142,9 @@
 }
 
 @media (max-width: 560px) {
-  .loc-panel { min-height: 420px; padding: 32px; }
-  .agent-card { padding: 26px; }
-  .office-card { padding: 28px; }
+  .loc-panel { min-height: 320px; padding: 22px; }
+  .agent-card { padding: 20px; }
+  .office-card { padding: 22px; }
+  .value-card__body { padding: 16px 16px 20px; }
+  .pillar__body { padding: 20px; }
 }

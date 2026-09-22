@@ -514,15 +514,35 @@
   flex-shrink: 0;
 }
 
-/* ---------- Property detail page grids ---------- */
+/* ---------- Property detail page ---------- */
+.breadcrumb-section {
+  padding: 132px 0 36px;
+}
+
+.pd-hero-section {
+  margin-bottom: 64px;
+}
+
+.pd-hero-head {
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
 .pd-overview-grid {
   grid-template-columns: 1.5fr 1fr;
   gap: 60px;
+  margin-bottom: 70px;
 }
 
 .pd-main-grid {
   grid-template-columns: 1.6fr 1fr;
   gap: 60px;
+}
+
+.pd-specs {
+  margin-bottom: 80px;
 }
 
 /* ---------- Related properties strip ---------- */
