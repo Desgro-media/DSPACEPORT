@@ -1,0 +1,48 @@
+:root {
+  /* Palette */
+  --black: #0a0a0b;
+  --black-soft: #121214;
+  --black-elev: #18181a;
+  --ivory: #f5f2ea;
+  --ivory-soft: #efe9db;
+  --white: #ffffff;
+  --ink: #0f0f10;
+  --ink-soft: #55534c;
+  --gold: #b48c53;
+  --gold-light: #d8bd8c;
+  --gold-dim: #8a6f45;
+  --line-on-dark: rgba(245, 242, 234, 0.14);
+  --line-on-dark-strong: rgba(245, 242, 234, 0.28);
+  --line-on-light: rgba(15, 15, 16, 0.12);
+  --line-on-light-strong: rgba(15, 15, 16, 0.24);
+  --text-on-dark: #f5f2ea;
+  --text-on-dark-muted: rgba(245, 242, 234, 0.62);
+  --text-on-light: #14130f;
+  --text-on-light-muted: rgba(20, 19, 15, 0.62);
+
+  /* Typography — single grotesk family throughout, matching the reference brand's
+     plain system-sans look. Inter Tight carries display/headline duty (tighter
+     tracking reads as more editorial at huge sizes); Inter carries body/UI. */
+  --font-display: "Inter Tight", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /* Layout */
+  --container: 1360px;
+  --container-narrow: 920px;
+  --gutter: clamp(24px, 5vw, 64px);
+  --section-pad: clamp(80px, 11vw, 160px);
+
+  /* Motion */
+  --ease: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 0.35s;
+  --dur-med: 0.6s;
+  --dur-slow: 1s;
+
+  /* Misc */
+  --radius: 2px;
+  --z-nav: 200;
+  --z-cursor: 300;
+  --z-overlay: 400;
+  --z-preloader: 500;
+}

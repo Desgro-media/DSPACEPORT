@@ -1,0 +1,34 @@
+.js-fade-up {
+  opacity: 0;
+  transform: translateY(48px);
+}
+
+.js-fade {
+  opacity: 0;
+}
+
+.js-scale {
+  opacity: 0;
+  transform: scale(1.12);
+}
+
+.js-stagger > * {
+  opacity: 0;
+  transform: translateY(36px);
+}
+
+.no-js .js-fade-up,
+.no-js .js-fade,
+.no-js .js-scale,
+.no-js .js-stagger > * {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js-fade-up, .js-fade, .js-scale, .js-stagger > * {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .marquee__track { animation: none; }
+}

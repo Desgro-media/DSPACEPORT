@@ -1,0 +1,174 @@
+body {
+  font-family: var(--font-body);
+  font-weight: 400;
+  color: var(--text-on-dark);
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 0.98;
+}
+
+.h-display {
+  font-size: clamp(3.4rem, 8.6vw, 8.4rem);
+  line-height: 0.92;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+
+.h-huge {
+  font-size: clamp(5rem, 13.5vw, 13rem);
+  line-height: 0.86;
+  font-weight: 700;
+  letter-spacing: -0.045em;
+}
+
+.h-xl {
+  font-size: clamp(2.4rem, 5.2vw, 4.8rem);
+  line-height: 0.98;
+  font-weight: 600;
+}
+
+.h-lg {
+  font-size: clamp(1.9rem, 3.6vw, 3.1rem);
+  line-height: 1.02;
+  font-weight: 600;
+}
+
+.h-md {
+  font-size: clamp(1.5rem, 2.2vw, 2rem);
+  line-height: 1.08;
+  font-weight: 600;
+}
+
+.h-sm {
+  font-size: clamp(1.15rem, 1.4vw, 1.4rem);
+  line-height: 1.2;
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.body-lg {
+  font-size: clamp(1.05rem, 1.3vw, 1.25rem);
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.body-md {
+  font-size: 1rem;
+  line-height: 1.7;
+  font-weight: 400;
+}
+
+.body-sm {
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.eyebrow--gold {
+  color: var(--gold);
+}
+
+.italic {
+  font-style: italic;
+}
+
+.muted-dark {
+  color: var(--text-on-dark-muted);
+}
+
+.muted-light {
+  color: var(--text-on-light-muted);
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.num {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* ---------- Editorial / artistic type utilities ---------- */
+
+/* Oversized outline numeral used as a decorative background graphic */
+.ghost-num {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(6rem, 16vw, 15rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: transparent;
+  -webkit-text-stroke: 1px var(--line-on-dark-strong);
+  pointer-events: none;
+  user-select: none;
+}
+
+.ghost-num--light {
+  -webkit-text-stroke: 1px var(--line-on-light-strong);
+}
+
+.ghost-num--solid {
+  color: var(--black-elev);
+  -webkit-text-stroke: 0;
+}
+
+/* Rotated vertical label — reads bottom-to-top, editorial margin note */
+.vert-label {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Giant decorative quotation glyph */
+.quote-mark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(5rem, 9vw, 8rem);
+  line-height: 0.6;
+  color: var(--gold);
+  opacity: 0.85;
+  display: block;
+}
+
+/* Index badge — "01" style running number beside a heading */
+.index-tag {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  color: var(--gold);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.index-tag::after {
+  content: "";
+  width: 30px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.5;
+}
