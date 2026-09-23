@@ -47,13 +47,26 @@
   .page-hero__content { padding-bottom: 40px; }
   .page-hero__num { top: 92px; font-size: 4rem; }
 
-  /* ---- Property / featured cards ---- */
-  .p-grid { gap: 26px 18px; }
-  .p-card__body { padding-top: 14px; }
-  .p-card__specs { margin-top: 10px; padding-top: 10px; gap: 10px; }
-  .p-card__tag { top: 12px; left: 12px; padding: 5px 11px; }
-  .p-card__price { left: 12px; bottom: 12px; }
-  .p-card__price .amount { font-size: 1.2rem; }
+  /* ---- Property / featured cards: compact 2-up grid so each card sits
+     in a small tile instead of stacking full-width down the screen.
+     The curated homepage bento (single big feature + 2 small) stays a
+     single column since it's a 3-item showcase, not a dense catalog. */
+  .p-grid:not(.p-grid--bento) { grid-template-columns: repeat(2, 1fr); gap: 14px 10px; }
+  .p-grid--bento { grid-template-columns: 1fr; gap: 18px; }
+  .p-grid--bento .p-card:first-child { grid-row: auto; }
+  .p-grid--bento .p-card:first-child .p-card__media { aspect-ratio: 4/5; min-height: 0; }
+  .related-scroll { grid-template-columns: repeat(2, 1fr); gap: 14px 10px; }
+
+  .p-card__body { padding-top: 10px; gap: 8px; }
+  .p-card__name { font-size: 0.92rem; margin-bottom: 3px; }
+  .p-card__loc { font-size: 0.68rem; }
+  .p-card__specs { margin-top: 8px; padding-top: 8px; gap: 6px 10px; font-size: 0.64rem; flex-wrap: wrap; }
+  .p-card__tag { top: 10px; left: 10px; padding: 4px 9px; font-size: 0.58rem; }
+  .p-card__fav { top: 10px; right: 10px; width: 30px; height: 30px; }
+  .p-card__fav svg { width: 14px; height: 14px; }
+  .p-card__price { left: 10px; right: 10px; bottom: 10px; }
+  .p-card__price .amount { font-size: 1.05rem; }
+  .p-card__price .body-sm { font-size: 0.6rem; line-height: 1.3; }
 
   /* ---- Service pillars ---- */
   .pillar { min-height: 320px; }
@@ -63,10 +76,12 @@
   .pillars--stagger .pillar:nth-child(2),
   .pillars--stagger .pillar:nth-child(3) { margin-top: 0; }
 
-  /* ---- Values ---- */
-  .values-grid { gap: 18px; }
-  .value-card__body { padding: 18px 18px 22px; }
-  .value-card__num { font-size: 2.8rem; }
+  /* ---- Values: compact 2-up, same density as the team grid below ---- */
+  .values-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .value-card__body { padding: 14px 14px 18px; }
+  .value-card__num { font-size: 2.2rem; }
+  .value-card .h-sm { font-size: 0.9rem; }
+  .value-card__body .body-sm { font-size: 0.76rem; }
 
   /* ---- Team: compact 2-up instead of one full-width card per row ---- */
   .team-grid {
@@ -92,13 +107,16 @@
   /* ---- Testimonials ---- */
   .testi-wrap { gap: 14px; }
 
-  /* ---- Related properties ---- */
-  .related-scroll { gap: 20px; }
-
   /* ---- Property detail: gallery, specs, agent card ---- */
   .breadcrumb-section { padding: 104px 0 24px; }
   .pd-hero-section { margin-bottom: 36px; }
-  .pd-hero-head { gap: 16px; margin-bottom: 20px; }
+  .pd-hero-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .pd-hero-head > div:last-child { text-align: left !important; }
   .spec-cell { padding: 18px 16px; }
   .spec-cell__value { font-size: 1.15rem; }
   .pd-overview-grid { gap: 24px; margin-bottom: 40px; }
@@ -129,6 +147,8 @@
     padding: 20px 0;
     margin-bottom: 36px;
   }
+  .chip { padding: 7px 13px; font-size: 0.68rem; }
+  .filter-bar__count { font-size: 0.74rem; }
 
   /* ---- WhatsApp float ---- */
   .wa-float {
@@ -139,6 +159,79 @@
   }
 
   .cursor, .cursor-ring { display: none !important; }
+
+  /* ---- Mobile nav toggle: animate the bars into an X when the menu
+     opens (previously it just sat there as a hamburger with no feedback
+     that tapping it again would close the menu). ---- */
+  .nav__toggle span { transition: transform var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease); }
+  .nav__toggle.is-open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+  .nav__toggle.is-open span:nth-child(2) { opacity: 0; }
+  .nav__toggle.is-open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+  /* ---- Mobile full-screen menu ----
+     Was a plain justify-content:center stack, which left large dead gaps
+     above and below the four links on a full 100vh panel. Anchor it near
+     the top instead, add running index numbers + dividers to match the
+     site's "01 —" numbering language used elsewhere, and pin the contact
+     footer to the bottom so the whole screen reads as one composition. */
+  .mobile-menu {
+    justify-content: flex-start;
+    padding-top: 116px;
+    padding-bottom: 32px;
+  }
+
+  .mobile-menu::before {
+    content: "Menu";
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 22px;
+  }
+
+  .mobile-menu__links {
+    gap: 0;
+    counter-reset: menu-item;
+    border-top: 1px solid var(--line-on-dark);
+  }
+
+  .mobile-menu__links a {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    padding: 15px 0;
+    border-bottom: 1px solid var(--line-on-dark);
+    transition: color var(--dur-fast) var(--ease), padding-left var(--dur-fast) var(--ease), gap var(--dur-fast) var(--ease);
+  }
+
+  .mobile-menu__links a::before {
+    counter-increment: menu-item;
+    content: counter(menu-item, decimal-leading-zero);
+    font-family: var(--font-body);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--gold);
+  }
+
+  .mobile-menu__links a.is-active,
+  .mobile-menu__links a:active {
+    color: var(--gold-light);
+    padding-left: 10px;
+  }
+
+  .mobile-menu__foot {
+    margin-top: auto;
+    padding-top: 24px;
+    border-top: 1px solid var(--line-on-dark);
+  }
+
+  .mobile-menu__foot span:first-child {
+    color: var(--text-on-dark);
+    font-weight: 600;
+  }
 }
 
 @media (max-width: 560px) {
@@ -146,5 +239,11 @@
   .agent-card { padding: 20px; }
   .office-card { padding: 22px; }
   .value-card__body { padding: 16px 16px 20px; }
+  .value-card__num { font-size: 1.9rem; }
   .pillar__body { padding: 20px; }
+
+  /* Slightly tighter card grid on very small phones. */
+  .p-grid:not(.p-grid--bento), .related-scroll { gap: 12px 8px; }
+  .values-grid, .team-grid { gap: 10px; }
+  .p-card__specs { gap: 4px 8px; }
 }
