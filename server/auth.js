@@ -13,8 +13,9 @@ function getSessionSecret() {
   return secret;
 }
 
+// Defaults can be overridden with ADMIN_USERNAME / ADMIN_PASSWORD_HASH env vars
+// (see README) — recommended before deploying anywhere reachable by the public.
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "dspaceadmin";
-// bcrypt hash of the admin password "desgromedia".
 const ADMIN_PASSWORD_HASH =
   process.env.ADMIN_PASSWORD_HASH ||
   "$2a$12$7jss2OVlqQOEdn1fKMBu/uLJdn..fRvQU7OOUc4pZRb0D90dcBrQ6";
