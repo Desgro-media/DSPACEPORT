@@ -1,0 +1,17 @@
+{
+  "name": "dspace-portfolio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DSPACE global real estate site with an admin CMS for properties, pricing, addresses and photos.",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0",
+    "express-session": "^1.18.0",
+    "multer": "^2.0.1"
+  }
+}

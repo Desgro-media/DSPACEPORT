@@ -142,7 +142,7 @@ document.querySelectorAll("[data-year]").forEach((el) => {
 (function whatsapp() {
   const els = document.querySelectorAll("[data-whatsapp]");
   if (!els.length) return;
-  const number = "971501234567";
+  const number = (typeof SITE_SETTINGS !== "undefined" && SITE_SETTINGS.contact && SITE_SETTINGS.contact.whatsapp) || "971501234567";
   const msg = encodeURIComponent("Hello DSPACE, I'd like to enquire about a property.");
   els.forEach((el) => { el.href = `https://wa.me/${number}?text=${msg}`; });
 })();
