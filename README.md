@@ -23,6 +23,15 @@ Change the port with `PORT=8080 npm start`. To rotate the admin credentials,
 set `ADMIN_USERNAME` and `ADMIN_PASSWORD_HASH` (a bcrypt hash) as environment
 variables instead of editing `server/auth.js` directly.
 
+**Deploying publicly** — set these two so sessions are handled correctly:
+- `NODE_ENV=production` — marks the session cookie `Secure` (HTTPS-only).
+- `TRUST_PROXY=1` — only if running behind a reverse proxy/load balancer
+  (Railway, Render, Nginx, ...); it makes Express read the real client IP
+  from `X-Forwarded-For` for rate limiting and lets the `Secure` cookie work
+  behind TLS-terminating proxies. Leave unset when the app is reachable
+  directly, since a client can otherwise spoof that header to dodge the
+  login rate limit.
+
 ## How content editing works
 
 All site content — properties, pricing, addresses, contact details, office

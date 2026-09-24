@@ -20,12 +20,18 @@ const ADMIN_PASSWORD_HASH =
   process.env.ADMIN_PASSWORD_HASH ||
   "$2a$12$7jss2OVlqQOEdn1fKMBu/uLJdn..fRvQU7OOUc4pZRb0D90dcBrQ6";
 
+// SHA-256 first so both sides are always a fixed 32-byte digest — timingSafeEqual
+// requires equal-length buffers, and an arbitrary-length username (attacker input)
+// would otherwise throw instead of just failing the check.
+function timingSafeStringEqual(a, b) {
+  const digestA = crypto.createHash("sha256").update(String(a)).digest();
+  const digestB = crypto.createHash("sha256").update(String(b)).digest();
+  return crypto.timingSafeEqual(digestA, digestB);
+}
+
 function verifyCredentials(username, password) {
   if (typeof username !== "string" || typeof password !== "string") return false;
-  const userOk = crypto.timingSafeEqual(
-    Buffer.from(username.padEnd(64)),
-    Buffer.from(ADMIN_USERNAME.padEnd(64))
-  );
+  const userOk = timingSafeStringEqual(username, ADMIN_USERNAME);
   const passOk = bcrypt.compareSync(password, ADMIN_PASSWORD_HASH);
   return userOk && passOk;
 }

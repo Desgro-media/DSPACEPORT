@@ -9,6 +9,12 @@
     return path.split(".").reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined), obj);
   }
 
+  function escapeHtml(str) {
+    return String(str == null ? "" : str).replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+
   document.querySelectorAll("[data-cms-text]").forEach((el) => {
     const val = getPath(SITE_SETTINGS, el.getAttribute("data-cms-text"));
     if (val !== undefined) el.textContent = val;
@@ -31,12 +37,12 @@
     const offices = SITE_SETTINGS.offices || [];
     container.innerHTML = offices.map((o) => `
       <div class="office-card">
-        <span class="office-card__flag">${o.countryLabel || ""}</span>
-        <h3 class="h-sm">${o.name || ""}</h3>
-        <p class="office-card__line body-sm">${o.address || ""}</p>
+        <span class="office-card__flag">${escapeHtml(o.countryLabel)}</span>
+        <h3 class="h-sm">${escapeHtml(o.name)}</h3>
+        <p class="office-card__line body-sm">${escapeHtml(o.address)}</p>
         <div class="office-card__divider"></div>
-        <p class="office-card__line body-sm">${o.hours || ""}</p>
-        <p class="office-card__line body-sm">${o.phone || ""}</p>
+        <p class="office-card__line body-sm">${escapeHtml(o.hours)}</p>
+        <p class="office-card__line body-sm">${escapeHtml(o.phone)}</p>
       </div>`).join("");
   });
 
@@ -69,9 +75,9 @@
     const team = typeof TEAM !== "undefined" ? TEAM : [];
     container.innerHTML = team.map((t) => `
       <div class="team-card">
-        <div class="team-card__media"><img src="${t.photo || ""}" alt="${t.name || ""}" loading="lazy" /></div>
-        <h3 class="h-sm">${t.name || ""}</h3>
-        <span class="team-card__role">${t.role || ""}</span>
+        <div class="team-card__media"><img src="${escapeHtml(t.photo)}" alt="${escapeHtml(t.name)}" loading="lazy" /></div>
+        <h3 class="h-sm">${escapeHtml(t.name)}</h3>
+        <span class="team-card__role">${escapeHtml(t.role)}</span>
       </div>`).join("");
   });
 

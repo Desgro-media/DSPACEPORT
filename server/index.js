@@ -13,9 +13,19 @@ const PORT = process.env.PORT || 3000;
 
 const app = express();
 app.disable("x-powered-by");
-app.set("trust proxy", 1);
+// Only trust X-Forwarded-* when actually deployed behind a reverse proxy
+// (Railway, Render, Nginx, ...). Trusting it unconditionally lets a direct
+// client spoof its IP via that header and dodge the login rate limiter below.
+if (process.env.TRUST_PROXY === "1") app.set("trust proxy", 1);
 
 app.use(express.json({ limit: "2mb" }));
+
+app.use((req, res, next) => {
+  res.set("X-Content-Type-Options", "nosniff");
+  res.set("X-Frame-Options", "DENY");
+  res.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  next();
+});
 
 app.use(
   session({
@@ -26,6 +36,7 @@ app.use(
     cookie: {
       httpOnly: true,
       sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
       maxAge: 1000 * 60 * 60 * 8 // 8 hours
     }
   })

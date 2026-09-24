@@ -1,24 +1,31 @@
+function escapeHtml(str) {
+  return String(str == null ? "" : str).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
 function propertyCardHTML(p) {
+  const id = encodeURIComponent(p.id);
   return `
-  <a href="property-detail.html?id=${p.id}" class="p-card js-fade-up" data-country="${p.country}" data-type="${p.type}">
+  <a href="property-detail.html?id=${id}" class="p-card js-fade-up" data-country="${escapeHtml(p.country)}" data-type="${escapeHtml(p.type)}">
     <div class="p-card__media">
-      <img src="${p.cover}" alt="${p.name}" loading="lazy" />
-      <span class="p-card__tag">${p.tag}</span>
+      <img src="${escapeHtml(p.cover)}" alt="${escapeHtml(p.name)}" loading="lazy" />
+      <span class="p-card__tag">${escapeHtml(p.tag)}</span>
       <div class="p-card__price">
-        <span class="amount">${p.price}</span>
-        <span class="body-sm muted-dark">${p.priceSub}</span>
+        <span class="amount">${escapeHtml(p.price)}</span>
+        <span class="body-sm muted-dark">${escapeHtml(p.priceSub)}</span>
       </div>
     </div>
     <div class="p-card__body">
       <div>
-        <h3 class="p-card__name h-sm">${p.name}</h3>
-        <span class="p-card__loc">${p.city}</span>
+        <h3 class="p-card__name h-sm">${escapeHtml(p.name)}</h3>
+        <span class="p-card__loc">${escapeHtml(p.city)}</span>
       </div>
     </div>
     <div class="p-card__specs">
-      <span>${p.beds} Beds</span>
-      <span>${p.baths} Baths</span>
-      <span>${p.area}</span>
+      <span>${escapeHtml(p.beds)} Beds</span>
+      <span>${escapeHtml(p.baths)} Baths</span>
+      <span>${escapeHtml(p.area)}</span>
     </div>
   </a>`;
 }

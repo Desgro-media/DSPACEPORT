@@ -1,3 +1,9 @@
+function escapeHtml(str) {
+  return String(str == null ? "" : str).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
 (function renderPropertyDetail() {
   const root = document.getElementById("propertyDetail");
   if (!root) return;
@@ -23,7 +29,7 @@
   for (let i = 1; i < 3; i++) {
     const src = gallery[i] || gallery[0];
     const div = document.createElement("div");
-    div.innerHTML = `<img src="${src}" alt="${p.name} interior" loading="lazy" />`;
+    div.innerHTML = `<img src="${escapeHtml(src)}" alt="${escapeHtml(p.name)} interior" loading="lazy" />`;
     side.appendChild(div);
   }
   document.getElementById("galCount").textContent = `01 / ${String(gallery.length).padStart(2, "0")}`;
@@ -40,16 +46,16 @@
   ];
   document.getElementById("pdSpecs").innerHTML = specs.map((s) => `
     <div class="spec-cell">
-      <div class="spec-cell__label">${s.label}</div>
-      <div class="spec-cell__value">${s.value}</div>
+      <div class="spec-cell__label">${escapeHtml(s.label)}</div>
+      <div class="spec-cell__value">${escapeHtml(s.value)}</div>
     </div>`).join("");
 
-  document.getElementById("pdDescription").innerHTML = p.description.map((para) => `<p class="body-lg muted-dark" style="margin-bottom:20px;">${para}</p>`).join("");
+  document.getElementById("pdDescription").innerHTML = p.description.map((para) => `<p class="body-lg muted-dark" style="margin-bottom:20px;">${escapeHtml(para)}</p>`).join("");
 
   document.getElementById("pdFeatures").innerHTML = p.features.map((f) => `
     <div class="flex gap-sm" style="align-items:center; padding:14px 0; border-bottom:1px solid var(--line-on-dark);">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8.5L6 12.5L14 3.5" stroke="#b48c53" stroke-width="1.6"/></svg>
-      <span class="body-md">${f}</span>
+      <span class="body-md">${escapeHtml(f)}</span>
     </div>`).join("");
 
   document.getElementById("agentName").textContent = p.agent.name;
