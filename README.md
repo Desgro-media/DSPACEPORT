@@ -2,8 +2,9 @@
 
 DSPACE global real estate site, served by a small Node/Express app that also
 powers an admin panel for managing properties, pricing, addresses and photos.
-Site content lives in Postgres and uploaded photos live in S3, so the app runs
-equally well on Vercel or on a traditional Node host (Railway, Render, a VPS).
+Site content lives in Postgres and uploaded photos live in Vercel Blob, so the
+app runs equally well on Vercel or on a traditional Node host (Railway,
+Render, a VPS).
 
 ## Set up
 
@@ -16,26 +17,10 @@ equally well on Vercel or on a traditional Node host (Railway, Render, a VPS).
      `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`.
      Required in any Vercel environment; optional locally (falls back to a
      file on disk, `server/.session-secret`).
-   - `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` /
-     `AWS_S3_BUCKET` — an S3 bucket for admin-uploaded photos, and an IAM
-     user scoped to just that bucket. The bucket needs:
-     - A bucket policy allowing public `s3:GetObject` (uploaded photos are
-       public site content):
-       ```json
-       { "Version": "2012-10-17", "Statement": [
-         { "Effect": "Allow", "Principal": "*", "Action": "s3:GetObject",
-           "Resource": "arn:aws:s3:::YOUR_BUCKET/*" }
-       ]}
-       ```
-       (also uncheck "Block public access via bucket policies" in the
-       bucket's Block Public Access settings)
-     - A CORS policy allowing browser PUT uploads:
-       ```json
-       [{ "AllowedOrigins": ["https://your-domain.example", "http://localhost:3000"],
-          "AllowedMethods": ["PUT"], "AllowedHeaders": ["Content-Type"], "MaxAgeSeconds": 3000 }]
-       ```
-     - The IAM user only needs `s3:PutObject` on `arn:aws:s3:::YOUR_BUCKET/*`
-       (reads are public via the bucket policy above, not via the app).
+   - `BLOB_READ_WRITE_TOKEN` — a Vercel Blob store for admin-uploaded photos.
+     On Vercel: Storage tab -> Create Database -> Blob -> connect to this
+     project, which injects it automatically (`vercel env pull` or copy the
+     value manually for local dev). No bucket policy or CORS setup needed.
 2. Install dependencies and create/seed the database tables (safe to re-run —
    it only inserts when a table is empty):
    ```
@@ -94,5 +79,7 @@ public pages instead of static files:
 - `assets/js/site-settings.js` — `SITE_SETTINGS` and `TEAM`, applied to the
   page by `assets/js/site-content.js` via `data-cms-*` attributes in the HTML.
 
-Uploaded photos go straight from the browser to S3 via a short-lived
-presigned URL (`server/upload.js`) and are referenced by their public S3 URL.
+Uploaded photos are forwarded by the server to Vercel Blob (`server/upload.js`)
+and referenced by their public Blob URL. Uploads are capped at 4MB, since
+Vercel Functions reject request bodies over 4.5MB regardless of any limit the
+app sets — resize or compress a larger photo before uploading it.

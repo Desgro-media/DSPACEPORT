@@ -5,7 +5,7 @@ const express = require("express");
 const rateLimit = require("express-rate-limit");
 
 const store = require("./store");
-const { sanitizeCategory, createPresignedUpload } = require("./upload");
+const { upload, sanitizeCategory, uploadImageBuffer } = require("./upload");
 const { verifyCredentials, requireAuth, createSessionCookie, clearSessionCookie, readSession } = require("./auth");
 
 const ROOT = path.join(__dirname, "..");
@@ -274,24 +274,23 @@ adminApi.delete("/team/:id", async (req, res) => {
   res.json({ ok: true });
 });
 
-// Returns a short-lived presigned S3 PUT URL instead of accepting the file
-// body directly — Vercel serverless functions cap request bodies at 4.5MB,
-// so the browser uploads straight to S3 and only tells us the resulting URL.
-adminApi.post("/upload-url", async (req, res) => {
-  const { filename, contentType, category } = req.body || {};
-  if (!filename || !contentType) {
-    return res.status(400).json({ error: "filename and contentType are required" });
-  }
-  try {
-    const { uploadUrl, publicUrl } = await createPresignedUpload({
-      category: sanitizeCategory(category),
-      filename,
-      contentType
-    });
-    res.status(201).json({ uploadUrl, publicUrl });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
+adminApi.post("/upload", (req, res) => {
+  upload.single("image")(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    try {
+      const category = sanitizeCategory(req.query.category || req.body.category);
+      const url = await uploadImageBuffer({
+        category,
+        buffer: req.file.buffer,
+        filename: req.file.originalname,
+        contentType: req.file.mimetype
+      });
+      res.status(201).json({ url });
+    } catch (e) {
+      res.status(500).json({ error: "Upload failed" });
+    }
+  });
 });
 
 app.use("/api/admin", adminApi);

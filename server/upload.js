@@ -1,6 +1,6 @@
 const crypto = require("crypto");
-const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
-const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+const multer = require("multer");
+const { put } = require("@vercel/blob");
 
 const ALLOWED_CATEGORIES = new Set([
   "properties",
@@ -23,10 +23,26 @@ const EXT_BY_MIME = {
 };
 const ALLOWED_MIME = new Set(Object.keys(EXT_BY_MIME));
 
+// Vercel Functions cap request bodies at 4.5MB regardless of this limit, so this
+// stays comfortably under that (leaving room for multipart headers/boundaries)
+// and fails with a clear message instead of an opaque platform-level 413.
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+
 function sanitizeCategory(raw) {
   const c = String(raw || "uploads").toLowerCase().replace(/[^a-z]/g, "");
   return ALLOWED_CATEGORIES.has(c) ? c : "uploads";
 }
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 },
+  fileFilter(req, file, cb) {
+    if (!ALLOWED_MIME.has(file.mimetype)) {
+      return cb(new Error("Only JPEG, PNG, WebP, GIF or SVG images are allowed"));
+    }
+    cb(null, true);
+  }
+});
 
 function buildKey(category, originalFilename, mimeType) {
   const ext = EXT_BY_MIME[mimeType] || ".jpg";
@@ -40,34 +56,10 @@ function buildKey(category, originalFilename, mimeType) {
   return `${category}/${base}-${Date.now()}-${unique}${ext}`;
 }
 
-function getS3Client() {
-  return new S3Client({
-    region: process.env.AWS_REGION,
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-    }
-  });
-}
-
-// Returns a short-lived presigned PUT URL so the browser uploads the file
-// directly to S3 — Vercel serverless functions cap request bodies at 4.5MB
-// (non-configurable), so proxying photo uploads through the function would
-// fail on any real listing photo over that size.
-async function createPresignedUpload({ category, filename, contentType }) {
-  if (!ALLOWED_MIME.has(contentType)) {
-    throw new Error("Only JPEG, PNG, WebP, GIF or SVG images are allowed");
-  }
-  const bucket = process.env.AWS_S3_BUCKET;
+async function uploadImageBuffer({ category, buffer, filename, contentType }) {
   const key = buildKey(category, filename, contentType);
-  const client = getS3Client();
-  const uploadUrl = await getSignedUrl(
-    client,
-    new PutObjectCommand({ Bucket: bucket, Key: key, ContentType: contentType }),
-    { expiresIn: 60 }
-  );
-  const publicUrl = `https://${bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
-  return { uploadUrl, publicUrl };
+  const blob = await put(key, buffer, { access: "public", contentType, addRandomSuffix: false });
+  return blob.url;
 }
 
-module.exports = { sanitizeCategory, ALLOWED_CATEGORIES, createPresignedUpload };
+module.exports = { upload, sanitizeCategory, uploadImageBuffer, MAX_UPLOAD_BYTES };

@@ -25,18 +25,27 @@ async function api(path, { method = "GET", body } = {}) {
   return data;
 }
 
+// Uploads route through our own server (which forwards to Vercel Blob), and
+// Vercel Functions cap request bodies at 4.5MB regardless of the app's own
+// limit — checking client-side gives a clear message instead of a bare
+// network failure partway through the upload.
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+
 async function uploadImage(file, category) {
-  const { uploadUrl, publicUrl } = await api("/api/admin/upload-url", {
+  if (file.size > MAX_UPLOAD_BYTES) {
+    throw new Error("Image is larger than 4MB — please resize or compress it before uploading");
+  }
+  const fd = new FormData();
+  fd.append("image", file);
+  const res = await fetch(`/api/admin/upload?category=${encodeURIComponent(category)}`, {
     method: "POST",
-    body: { filename: file.name, contentType: file.type, category }
+    credentials: "same-origin",
+    headers: { "X-Requested-With": "dspace-admin" },
+    body: fd
   });
-  const putRes = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type },
-    body: file
-  });
-  if (!putRes.ok) throw new Error("Upload failed");
-  return publicUrl;
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Upload failed");
+  return data.url;
 }
 
 let toastTimer;
