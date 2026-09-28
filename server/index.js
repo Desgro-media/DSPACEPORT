@@ -44,6 +44,17 @@ function requireFetchHeader(req, res, next) {
   next();
 }
 
+// Express 4 does not catch a rejected promise or a synchronous throw from an
+// async route handler — it just leaves the request hanging with no response
+// until the platform's own timeout kills it (this is exactly what happened
+// with the login route: a missing env var threw inside an async handler and
+// every attempt silently hung for 5 minutes instead of failing fast). Wrapping
+// every async handler in this wires unexpected errors into Express's normal
+// error-handling middleware instead.
+function asyncHandler(fn) {
+  return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+}
+
 /* ---------------------------------------------------------------------- */
 /* Dynamic, DB-backed replacements for the static data scripts.            */
 /* Registered before express.static so they always win over any file on   */
@@ -51,21 +62,21 @@ function requireFetchHeader(req, res, next) {
 /* explicit rewrite here: static files win over rewrites on Vercel).       */
 /* ---------------------------------------------------------------------- */
 
-app.get("/assets/js/properties-data.js", async (req, res) => {
+app.get("/assets/js/properties-data.js", asyncHandler(async (req, res) => {
   const { properties } = await store.getData();
   res.type("application/javascript").send(
     `const PROPERTIES = ${JSON.stringify(properties, null, 2)};\n\n` +
       `if (typeof module !== "undefined") {\n  module.exports = PROPERTIES;\n}\n`
   );
-});
+}));
 
-app.get("/assets/js/site-settings.js", async (req, res) => {
+app.get("/assets/js/site-settings.js", asyncHandler(async (req, res) => {
   const { settings, team } = await store.getData();
   res.type("application/javascript").send(
     `const SITE_SETTINGS = ${JSON.stringify(settings, null, 2)};\n` +
       `const TEAM = ${JSON.stringify(team, null, 2)};\n`
   );
-});
+}));
 
 /* ---------------------------------------------------------------------- */
 /* Auth                                                                     */
@@ -79,13 +90,13 @@ const loginLimiter = rateLimit({
   message: { error: "Too many login attempts. Try again later." }
 });
 
-app.post("/api/admin/login", loginLimiter, async (req, res) => {
+app.post("/api/admin/login", loginLimiter, asyncHandler(async (req, res) => {
   const { username, password } = req.body || {};
   const ok = await verifyCredentials(username, password);
   if (!ok) return res.status(401).json({ error: "Invalid username or password" });
   res.setHeader("Set-Cookie", createSessionCookie(username));
   res.json({ ok: true, username });
-});
+}));
 
 app.post("/api/admin/logout", (req, res) => {
   res.setHeader("Set-Cookie", clearSessionCookie());
@@ -102,23 +113,23 @@ app.get("/api/admin/me", (req, res) => {
 /* Public read API (used by the storefront pages)                          */
 /* ---------------------------------------------------------------------- */
 
-app.get("/api/properties", async (req, res) => {
+app.get("/api/properties", asyncHandler(async (req, res) => {
   res.json((await store.getData()).properties);
-});
+}));
 
-app.get("/api/properties/:id", async (req, res) => {
+app.get("/api/properties/:id", asyncHandler(async (req, res) => {
   const p = (await store.getData()).properties.find((x) => x.id === req.params.id);
   if (!p) return res.status(404).json({ error: "Not found" });
   res.json(p);
-});
+}));
 
-app.get("/api/settings", async (req, res) => {
+app.get("/api/settings", asyncHandler(async (req, res) => {
   res.json((await store.getData()).settings);
-});
+}));
 
-app.get("/api/team", async (req, res) => {
+app.get("/api/team", asyncHandler(async (req, res) => {
   res.json((await store.getData()).team);
-});
+}));
 
 /* ---------------------------------------------------------------------- */
 /* Admin write API                                                         */
@@ -182,7 +193,7 @@ function sanitizeProperty(input, existing) {
   return p;
 }
 
-adminApi.post("/properties", async (req, res) => {
+adminApi.post("/properties", asyncHandler(async (req, res) => {
   const input = req.body || {};
   if (!input.name || !String(input.name).trim()) {
     return res.status(400).json({ error: "Property name is required" });
@@ -194,9 +205,9 @@ adminApi.post("/properties", async (req, res) => {
     d.properties.push(property);
   });
   res.status(201).json(data.properties.find((p) => p.id === property.id));
-});
+}));
 
-adminApi.put("/properties/:id", async (req, res) => {
+adminApi.put("/properties/:id", asyncHandler(async (req, res) => {
   const { id } = req.params;
   const data0 = await store.getData();
   const existing = data0.properties.find((p) => p.id === id);
@@ -208,9 +219,9 @@ adminApi.put("/properties/:id", async (req, res) => {
     d.properties[idx] = updated;
   });
   res.json(data.properties.find((p) => p.id === id));
-});
+}));
 
-adminApi.delete("/properties/:id", async (req, res) => {
+adminApi.delete("/properties/:id", asyncHandler(async (req, res) => {
   const { id } = req.params;
   const exists = (await store.getData()).properties.some((p) => p.id === id);
   if (!exists) return res.status(404).json({ error: "Not found" });
@@ -218,9 +229,9 @@ adminApi.delete("/properties/:id", async (req, res) => {
     d.properties = d.properties.filter((p) => p.id !== id);
   });
   res.json({ ok: true });
-});
+}));
 
-adminApi.put("/settings", async (req, res) => {
+adminApi.put("/settings", asyncHandler(async (req, res) => {
   const input = req.body || {};
   const data = await store.save((d) => {
     d.settings = {
@@ -231,9 +242,9 @@ adminApi.put("/settings", async (req, res) => {
     };
   });
   res.json(data.settings);
-});
+}));
 
-adminApi.post("/team", async (req, res) => {
+adminApi.post("/team", asyncHandler(async (req, res) => {
   const input = req.body || {};
   if (!input.name || !String(input.name).trim()) {
     return res.status(400).json({ error: "Name is required" });
@@ -249,9 +260,9 @@ adminApi.post("/team", async (req, res) => {
     d.team.push(member);
   });
   res.status(201).json(data.team.find((t) => t.id === member.id));
-});
+}));
 
-adminApi.put("/team/:id", async (req, res) => {
+adminApi.put("/team/:id", asyncHandler(async (req, res) => {
   const { id } = req.params;
   const exists = (await store.getData()).team.some((t) => t.id === id);
   if (!exists) return res.status(404).json({ error: "Not found" });
@@ -267,9 +278,9 @@ adminApi.put("/team/:id", async (req, res) => {
     };
   });
   res.json(data.team.find((t) => t.id === id));
-});
+}));
 
-adminApi.delete("/team/:id", async (req, res) => {
+adminApi.delete("/team/:id", asyncHandler(async (req, res) => {
   const { id } = req.params;
   const exists = (await store.getData()).team.some((t) => t.id === id);
   if (!exists) return res.status(404).json({ error: "Not found" });
@@ -277,7 +288,7 @@ adminApi.delete("/team/:id", async (req, res) => {
     d.team = d.team.filter((t) => t.id !== id);
   });
   res.json({ ok: true });
-});
+}));
 
 adminApi.post("/upload", (req, res) => {
   upload.single("image")(req, res, async (err) => {
@@ -323,6 +334,15 @@ for (const page of PAGES) {
 app.get("/", (req, res) => res.sendFile(path.join(ROOT, "index.html")));
 
 app.use((req, res) => res.status(404).send("Not found"));
+
+// Final safety net: catches anything asyncHandler forwards (or any synchronous
+// throw in a non-async handler) so a bug fails fast with a 500 instead of
+// hanging the request until the platform's own timeout kills it.
+app.use((err, req, res, next) => {
+  console.error(err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: "Internal server error" });
+});
 
 // Vercel imports this module for its serverless function (see api/index.js)
 // without ever calling listen(); only start a real listener when this file is
