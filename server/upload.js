@@ -1,9 +1,6 @@
-const fs = require("fs");
-const path = require("path");
 const crypto = require("crypto");
-const multer = require("multer");
-
-const IMAGES_ROOT = path.join(__dirname, "..", "assets", "images");
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
 const ALLOWED_CATEGORIES = new Set([
   "properties",
@@ -17,7 +14,6 @@ const ALLOWED_CATEGORIES = new Set([
   "uploads"
 ]);
 
-const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"]);
 const EXT_BY_MIME = {
   "image/jpeg": ".jpg",
   "image/png": ".png",
@@ -25,42 +21,53 @@ const EXT_BY_MIME = {
   "image/svg+xml": ".svg",
   "image/gif": ".gif"
 };
+const ALLOWED_MIME = new Set(Object.keys(EXT_BY_MIME));
 
 function sanitizeCategory(raw) {
   const c = String(raw || "uploads").toLowerCase().replace(/[^a-z]/g, "");
   return ALLOWED_CATEGORIES.has(c) ? c : "uploads";
 }
 
-const storage = multer.diskStorage({
-  destination(req, file, cb) {
-    const category = sanitizeCategory(req.query.category || req.body.category);
-    const dir = path.join(IMAGES_ROOT, category);
-    fs.mkdirSync(dir, { recursive: true });
-    req._uploadCategory = category;
-    cb(null, dir);
-  },
-  filename(req, file, cb) {
-    const ext = EXT_BY_MIME[file.mimetype] || path.extname(file.originalname).toLowerCase() || ".jpg";
-    const base = path
-      .basename(file.originalname, path.extname(file.originalname))
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "")
-      .slice(0, 40) || "image";
-    const unique = crypto.randomBytes(4).toString("hex");
-    cb(null, `${base}-${Date.now()}-${unique}${ext}`);
-  }
-});
+function buildKey(category, originalFilename, mimeType) {
+  const ext = EXT_BY_MIME[mimeType] || ".jpg";
+  const base = String(originalFilename || "image")
+    .replace(/\.[^.]+$/, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 40) || "image";
+  const unique = crypto.randomBytes(4).toString("hex");
+  return `${category}/${base}-${Date.now()}-${unique}${ext}`;
+}
 
-const upload = multer({
-  storage,
-  limits: { fileSize: 12 * 1024 * 1024, files: 1 },
-  fileFilter(req, file, cb) {
-    if (!ALLOWED_MIME.has(file.mimetype)) {
-      return cb(new Error("Only JPEG, PNG, WebP, GIF or SVG images are allowed"));
+function getS3Client() {
+  return new S3Client({
+    region: process.env.AWS_REGION,
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
     }
-    cb(null, true);
-  }
-});
+  });
+}
 
-module.exports = { upload, sanitizeCategory };
+// Returns a short-lived presigned PUT URL so the browser uploads the file
+// directly to S3 — Vercel serverless functions cap request bodies at 4.5MB
+// (non-configurable), so proxying photo uploads through the function would
+// fail on any real listing photo over that size.
+async function createPresignedUpload({ category, filename, contentType }) {
+  if (!ALLOWED_MIME.has(contentType)) {
+    throw new Error("Only JPEG, PNG, WebP, GIF or SVG images are allowed");
+  }
+  const bucket = process.env.AWS_S3_BUCKET;
+  const key = buildKey(category, filename, contentType);
+  const client = getS3Client();
+  const uploadUrl = await getSignedUrl(
+    client,
+    new PutObjectCommand({ Bucket: bucket, Key: key, ContentType: contentType }),
+    { expiresIn: 60 }
+  );
+  const publicUrl = `https://${bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+  return { uploadUrl, publicUrl };
+}
+
+module.exports = { sanitizeCategory, ALLOWED_CATEGORIES, createPresignedUpload };

@@ -26,17 +26,17 @@ async function api(path, { method = "GET", body } = {}) {
 }
 
 async function uploadImage(file, category) {
-  const fd = new FormData();
-  fd.append("image", file);
-  const res = await fetch(`/api/admin/upload?category=${encodeURIComponent(category)}`, {
+  const { uploadUrl, publicUrl } = await api("/api/admin/upload-url", {
     method: "POST",
-    credentials: "same-origin",
-    headers: { "X-Requested-With": "dspace-admin" },
-    body: fd
+    body: { filename: file.name, contentType: file.type, category }
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Upload failed");
-  return data.url;
+  const putRes = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": file.type },
+    body: file
+  });
+  if (!putRes.ok) throw new Error("Upload failed");
+  return publicUrl;
 }
 
 let toastTimer;
