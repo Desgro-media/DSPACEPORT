@@ -90,26 +90,18 @@ function timingSafeStringEqual(a, b) {
   return crypto.timingSafeEqual(digestA, digestB);
 }
 
-// TEMPORARY: timing instrumentation to diagnose a production hang on this
-// route specifically (GETs that skip both the query and bcrypt are fine) —
-// remove once the slow step is identified and fixed.
 async function verifyCredentials(username, password) {
   if (typeof username !== "string" || typeof password !== "string") return false;
-  const t0 = Date.now();
   const { rows } = await pool.query(
     "SELECT username, password_hash FROM admin_credentials WHERE username = $1",
     [username]
   );
-  const t1 = Date.now();
-  console.log(`[verifyCredentials] db query: ${t1 - t0}ms`);
   if (!rows.length) {
     await bcrypt.compare(password, DUMMY_HASH);
-    console.log(`[verifyCredentials] dummy bcrypt: ${Date.now() - t1}ms`);
     return false;
   }
   const userOk = timingSafeStringEqual(username, rows[0].username);
   const passOk = await bcrypt.compare(password, rows[0].password_hash);
-  console.log(`[verifyCredentials] real bcrypt: ${Date.now() - t1}ms`);
   return userOk && passOk;
 }
 
