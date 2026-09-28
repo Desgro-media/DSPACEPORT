@@ -17,8 +17,13 @@ app.disable("x-powered-by");
 // Only trust X-Forwarded-* when actually deployed behind a reverse proxy
 // (Railway, Render, Vercel, Nginx, ...). Trusting it unconditionally lets a
 // direct client spoof its IP via that header and dodge the login rate limiter
-// below.
-if (process.env.TRUST_PROXY === "1") app.set("trust proxy", 1);
+// below. Vercel always sets X-Forwarded-For (it's a proxy in front of every
+// function) and its own env var (process.env.VERCEL) reliably says so, so
+// this is detected automatically there instead of depending on TRUST_PROXY
+// being set correctly by hand — forgetting it doesn't just weaken the rate
+// limiter, it makes express-rate-limit throw and every login request hang
+// until Vercel's own timeout kills it.
+if (process.env.TRUST_PROXY === "1" || process.env.VERCEL) app.set("trust proxy", 1);
 
 app.use(express.json({ limit: "2mb" }));
 
