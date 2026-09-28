@@ -1,36 +1,31 @@
-const fs = require("fs");
-const path = require("path");
+const { pool } = require("./db");
 
-const DB_PATH = path.join(__dirname, "..", "data", "db.json");
-
-let cache = null;
-let writeChain = Promise.resolve();
-
-function load() {
-  if (!cache) {
-    const raw = fs.readFileSync(DB_PATH, "utf8");
-    cache = JSON.parse(raw);
-  }
-  return cache;
+async function getData() {
+  const { rows } = await pool.query("SELECT data FROM site_data WHERE id = 1");
+  if (!rows.length) throw new Error("site_data row missing — run the seed script");
+  return rows[0].data;
 }
 
-function getData() {
-  return load();
-}
-
-// Serializes writes so concurrent admin requests can't clobber each other,
-// and writes to a temp file + rename so a crash mid-write can't corrupt db.json.
-function save(mutator) {
-  writeChain = writeChain.then(() => {
-    const data = load();
+// Runs the read-modify-write as one transaction with a row lock so two admins
+// saving at the same time (or two overlapping requests to the same serverless
+// function) can't clobber each other's changes to the shared JSON blob.
+async function save(mutator) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const { rows } = await client.query("SELECT data FROM site_data WHERE id = 1 FOR UPDATE");
+    if (!rows.length) throw new Error("site_data row missing — run the seed script");
+    const data = rows[0].data;
     mutator(data);
-    const tmpPath = DB_PATH + ".tmp";
-    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), "utf8");
-    fs.renameSync(tmpPath, DB_PATH);
-    cache = data;
+    await client.query("UPDATE site_data SET data = $1, updated_at = now() WHERE id = 1", [data]);
+    await client.query("COMMIT");
     return data;
-  });
-  return writeChain;
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 module.exports = { getData, save };

@@ -1,0 +1,26 @@
+{
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index" },
+    { "source": "/assets/js/properties-data.js", "destination": "/api/index" },
+    { "source": "/assets/js/site-settings.js", "destination": "/api/index" },
+    { "source": "/admin", "destination": "/admin/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    },
+    {
+      "source": "/admin",
+      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+    },
+    {
+      "source": "/admin/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+    }
+  ]
+}

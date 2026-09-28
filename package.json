@@ -5,13 +5,17 @@
   "description": "DSPACE global real estate site with an admin CMS for properties, pricing, addresses and photos.",
   "scripts": {
     "start": "node server/index.js",
-    "dev": "node server/index.js"
+    "dev": "node server/index.js",
+    "seed": "node scripts/seed-db.js"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.0",
     "bcryptjs": "^2.4.3",
+    "cookie": "^0.7.1",
+    "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "express-rate-limit": "^7.4.0",
-    "express-session": "^1.18.0",
-    "multer": "^2.0.1"
+    "multer": "^2.0.1",
+    "pg": "^8.12.0"
   }
 }

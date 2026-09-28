@@ -1,11 +1,12 @@
+require("dotenv").config();
+
 const path = require("path");
 const express = require("express");
-const session = require("express-session");
 const rateLimit = require("express-rate-limit");
 
 const store = require("./store");
-const { upload, sanitizeCategory } = require("./upload");
-const { getSessionSecret, verifyCredentials, requireAuth, ADMIN_USERNAME } = require("./auth");
+const { upload, sanitizeCategory, uploadImageBuffer } = require("./upload");
+const { verifyCredentials, requireAuth, createSessionCookie, clearSessionCookie, readSession } = require("./auth");
 
 const ROOT = path.join(__dirname, "..");
 const ADMIN_DIR = path.join(ROOT, "admin");
@@ -14,8 +15,9 @@ const PORT = process.env.PORT || 3000;
 const app = express();
 app.disable("x-powered-by");
 // Only trust X-Forwarded-* when actually deployed behind a reverse proxy
-// (Railway, Render, Nginx, ...). Trusting it unconditionally lets a direct
-// client spoof its IP via that header and dodge the login rate limiter below.
+// (Railway, Render, Vercel, Nginx, ...). Trusting it unconditionally lets a
+// direct client spoof its IP via that header and dodge the login rate limiter
+// below.
 if (process.env.TRUST_PROXY === "1") app.set("trust proxy", 1);
 
 app.use(express.json({ limit: "2mb" }));
@@ -26,21 +28,6 @@ app.use((req, res, next) => {
   res.set("Referrer-Policy", "strict-origin-when-cross-origin");
   next();
 });
-
-app.use(
-  session({
-    name: "dspace.sid",
-    secret: getSessionSecret(),
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 1000 * 60 * 60 * 8 // 8 hours
-    }
-  })
-);
 
 // Lightweight CSRF guard: browsers cannot attach this custom header from a
 // cross-site <form> submission or plain cross-origin fetch, so requiring it
@@ -55,19 +42,20 @@ function requireFetchHeader(req, res, next) {
 /* ---------------------------------------------------------------------- */
 /* Dynamic, DB-backed replacements for the static data scripts.            */
 /* Registered before express.static so they always win over any file on   */
-/* disk at the same path.                                                  */
+/* disk at the same path (see vercel.json for why Vercel also needs an    */
+/* explicit rewrite here: static files win over rewrites on Vercel).       */
 /* ---------------------------------------------------------------------- */
 
-app.get("/assets/js/properties-data.js", (req, res) => {
-  const { properties } = store.getData();
+app.get("/assets/js/properties-data.js", async (req, res) => {
+  const { properties } = await store.getData();
   res.type("application/javascript").send(
     `const PROPERTIES = ${JSON.stringify(properties, null, 2)};\n\n` +
       `if (typeof module !== "undefined") {\n  module.exports = PROPERTIES;\n}\n`
   );
 });
 
-app.get("/assets/js/site-settings.js", (req, res) => {
-  const { settings, team } = store.getData();
+app.get("/assets/js/site-settings.js", async (req, res) => {
+  const { settings, team } = await store.getData();
   res.type("application/javascript").send(
     `const SITE_SETTINGS = ${JSON.stringify(settings, null, 2)};\n` +
       `const TEAM = ${JSON.stringify(team, null, 2)};\n`
@@ -86,30 +74,22 @@ const loginLimiter = rateLimit({
   message: { error: "Too many login attempts. Try again later." }
 });
 
-app.post("/api/admin/login", loginLimiter, (req, res) => {
+app.post("/api/admin/login", loginLimiter, async (req, res) => {
   const { username, password } = req.body || {};
-  if (!verifyCredentials(username, password)) {
-    return res.status(401).json({ error: "Invalid username or password" });
-  }
-  req.session.regenerate((err) => {
-    if (err) return res.status(500).json({ error: "Login failed" });
-    req.session.isAdmin = true;
-    req.session.username = ADMIN_USERNAME;
-    res.json({ ok: true, username: ADMIN_USERNAME });
-  });
+  const ok = await verifyCredentials(username, password);
+  if (!ok) return res.status(401).json({ error: "Invalid username or password" });
+  res.setHeader("Set-Cookie", createSessionCookie(username));
+  res.json({ ok: true, username });
 });
 
 app.post("/api/admin/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.clearCookie("dspace.sid");
-    res.json({ ok: true });
-  });
+  res.setHeader("Set-Cookie", clearSessionCookie());
+  res.json({ ok: true });
 });
 
 app.get("/api/admin/me", (req, res) => {
-  if (req.session && req.session.isAdmin) {
-    return res.json({ authenticated: true, username: req.session.username });
-  }
+  const session = readSession(req);
+  if (session) return res.json({ authenticated: true, username: session.u });
   res.json({ authenticated: false });
 });
 
@@ -117,22 +97,22 @@ app.get("/api/admin/me", (req, res) => {
 /* Public read API (used by the storefront pages)                          */
 /* ---------------------------------------------------------------------- */
 
-app.get("/api/properties", (req, res) => {
-  res.json(store.getData().properties);
+app.get("/api/properties", async (req, res) => {
+  res.json((await store.getData()).properties);
 });
 
-app.get("/api/properties/:id", (req, res) => {
-  const p = store.getData().properties.find((x) => x.id === req.params.id);
+app.get("/api/properties/:id", async (req, res) => {
+  const p = (await store.getData()).properties.find((x) => x.id === req.params.id);
   if (!p) return res.status(404).json({ error: "Not found" });
   res.json(p);
 });
 
-app.get("/api/settings", (req, res) => {
-  res.json(store.getData().settings);
+app.get("/api/settings", async (req, res) => {
+  res.json((await store.getData()).settings);
 });
 
-app.get("/api/team", (req, res) => {
-  res.json(store.getData().team);
+app.get("/api/team", async (req, res) => {
+  res.json((await store.getData()).team);
 });
 
 /* ---------------------------------------------------------------------- */
@@ -213,7 +193,7 @@ adminApi.post("/properties", async (req, res) => {
 
 adminApi.put("/properties/:id", async (req, res) => {
   const { id } = req.params;
-  const data0 = store.getData();
+  const data0 = await store.getData();
   const existing = data0.properties.find((p) => p.id === id);
   if (!existing) return res.status(404).json({ error: "Not found" });
   const updated = sanitizeProperty(req.body || {}, existing);
@@ -227,7 +207,7 @@ adminApi.put("/properties/:id", async (req, res) => {
 
 adminApi.delete("/properties/:id", async (req, res) => {
   const { id } = req.params;
-  const exists = store.getData().properties.some((p) => p.id === id);
+  const exists = (await store.getData()).properties.some((p) => p.id === id);
   if (!exists) return res.status(404).json({ error: "Not found" });
   await store.save((d) => {
     d.properties = d.properties.filter((p) => p.id !== id);
@@ -268,7 +248,7 @@ adminApi.post("/team", async (req, res) => {
 
 adminApi.put("/team/:id", async (req, res) => {
   const { id } = req.params;
-  const exists = store.getData().team.some((t) => t.id === id);
+  const exists = (await store.getData()).team.some((t) => t.id === id);
   if (!exists) return res.status(404).json({ error: "Not found" });
   const input = req.body || {};
   const data = await store.save((d) => {
@@ -286,7 +266,7 @@ adminApi.put("/team/:id", async (req, res) => {
 
 adminApi.delete("/team/:id", async (req, res) => {
   const { id } = req.params;
-  const exists = store.getData().team.some((t) => t.id === id);
+  const exists = (await store.getData()).team.some((t) => t.id === id);
   if (!exists) return res.status(404).json({ error: "Not found" });
   await store.save((d) => {
     d.team = d.team.filter((t) => t.id !== id);
@@ -295,12 +275,21 @@ adminApi.delete("/team/:id", async (req, res) => {
 });
 
 adminApi.post("/upload", (req, res) => {
-  upload.single("image")(req, res, (err) => {
+  upload.single("image")(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-    const category = req._uploadCategory || sanitizeCategory(req.query.category);
-    const url = `assets/images/${category}/${req.file.filename}`;
-    res.status(201).json({ url });
+    try {
+      const category = sanitizeCategory(req.query.category || req.body.category);
+      const url = await uploadImageBuffer({
+        category,
+        buffer: req.file.buffer,
+        filename: req.file.originalname,
+        contentType: req.file.mimetype
+      });
+      res.status(201).json({ url });
+    } catch (e) {
+      res.status(500).json({ error: "Upload failed" });
+    }
   });
 });
 
@@ -330,7 +319,14 @@ app.get("/", (req, res) => res.sendFile(path.join(ROOT, "index.html")));
 
 app.use((req, res) => res.status(404).send("Not found"));
 
-app.listen(PORT, () => {
-  console.log(`DSPACE server running at http://localhost:${PORT}`);
-  console.log(`Admin panel at http://localhost:${PORT}/admin`);
-});
+// Vercel imports this module for its serverless function (see api/index.js)
+// without ever calling listen(); only start a real listener when this file is
+// run directly (`npm start` / `npm run dev`).
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`DSPACE server running at http://localhost:${PORT}`);
+    console.log(`Admin panel at http://localhost:${PORT}/admin`);
+  });
+}
+
+module.exports = app;
